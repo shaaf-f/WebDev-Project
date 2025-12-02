@@ -248,3 +248,58 @@ body {
 .bg-blue { background: var(--blue); }
 .bg-yellow { background: var(--warning); }
 .bg-green { background: var(--success); }
+
+/* --- Time Selector Container --- */
+.time-selector {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /* 3 columns */
+  gap: 8px;
+  max-height: 160px;       /* Fixed height */
+  overflow-y: auto;        /* Scrollable */
+  padding: 10px;
+  background-color: #f8f9fa;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  margin-top: 5px;
+}
+
+/* --- Individual Time Buttons --- */
+.time-btn {
+  width: 100%;
+  padding: 8px 4px;
+  font-size: 0.85rem;
+  text-align: center;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background-color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.time-btn:hover {
+  border-color: #000;
+  background-color: #f3f4f6;
+}
+
+/* Active State (Selected Time) */
+.time-btn.active {
+  background-color: #000; /* Black background for selected */
+  color: white;
+  border-color: #000;
+}
+
+/* --- Optional: Make the scrollbar look nicer --- */
+.time-selector::-webkit-scrollbar {
+  width: 6px;
+}
+.time-selector::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+.time-selector::-webkit-scrollbar-thumb {
+  background: #cbd5e1; 
+  border-radius: 4px;
+}
+.time-selector::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8; 
+}

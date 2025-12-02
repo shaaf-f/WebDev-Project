@@ -1,81 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { initializeApp } from 'firebase/app';
-import './App.css';
+import './App.css'; 
 import { 
-  getAuth, 
-  signInAnonymously, 
-  onAuthStateChanged,
-  signInWithCustomToken
-} from 'firebase/auth';
-import { 
-  getFirestore, 
-  collection, 
-  addDoc, 
-  updateDoc, 
-  doc, 
-  onSnapshot, 
-  query, 
-  orderBy, 
-  serverTimestamp, 
-  where 
-} from 'firebase/firestore';
-import { 
-  ShoppingBag, 
-  Clock, 
-  CreditCard, 
-  CheckCircle, 
-  XCircle, 
-  ArrowLeft, 
-  LogOut,
-  User,
-  Store,
-  Bell,
-  Settings,
-  AlertCircle,
-  Utensils
+  ShoppingBag, Clock, XCircle, ArrowLeft, LogOut, User, Store, Utensils, Lock, AlertCircle
 } from 'lucide-react';
 
 /* ==================================================================================
-   SECTION 1: CONFIGURATION & INITIALIZATION
+   SECTION 1: CONSTANTS & DATA
    ================================================================================== */
 
-let app, auth, db;
-let configMissing = false;
-
-// 1. Try to get config from the Canvas environment
-if (typeof __firebase_config !== 'undefined') {
-  const firebaseConfig = JSON.parse(__firebase_config);
-  app = initializeApp(firebaseConfig);
-} 
-// 2. Local fallback
-else {
-  const localConfig = {
-    // apiKey: import.meta.env.VITE_FIREBASE_API_KEY, 
-    // authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-    // projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-    // storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-    // messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-    // appId: import.meta.env.VITE_FIREBASE_APP_ID,
-    // measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
-  };  
-
-  if (!localConfig.apiKey) {
-    configMissing = true;
-  } else {
-    app = initializeApp(localConfig);
-  }
-}
-
-if (app) {
-  auth = getAuth(app);
-  db = getFirestore(app);
-}
-
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'ufos-v1';
-
-/* ==================================================================================
-   SECTION 2: DATA & CONSTANTS
-   ================================================================================== */
+const API_URL = 'http://localhost:3001/api';
 
 const VENDORS = [
   { id: 'v_tapal', name: 'Tapal Cafeteria', cuisine: 'Normal Dining & Cuisine', icon: '🍛', theme: '#b91c1c' },
@@ -116,31 +49,38 @@ const MOCK_MENU = {
   ],
 };
 
+const generateTimeSlots = () => {
+  const times = [];
+  let minutes = 8 * 60 + 30; // Start at 8:30 AM (in minutes)
+  const end = 18 * 60 + 30;  // End at 6:30 PM
+
+  while (minutes <= end) {
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    // Format: H:MM (pads minutes with 0 if needed, e.g. 8:05)
+    times.push(`${h}:${m.toString().padStart(2, '0')}`);
+    minutes += 15;
+  }
+  return times;
+};
+
+const TIME_SLOTS = generateTimeSlots();
+
 /* ==================================================================================
    SECTION 4: COMPONENTS
    ================================================================================== */
 
-const ConfigErrorScreen = () => (
-  <div className="full-screen-center">
-    <div className="error-icon">
-      <Settings size={48} />
-    </div>
-    <h2>Firebase Configuration Required</h2>
-    <p>Please update the localConfig object in App.jsx with your Firebase keys.</p>
-  </div>
-);
 
-const Header = ({ title, user, cartCount, setView, view, logout, role }) => (
+   
+const Header = ({ user, cartCount, setView, view, logout }) => (
   <header className="header">
     <div className="header-content">
       <div className="logo" onClick={() => setView('vendors')}>
-        <div className="logo-icon">
-          <ShoppingBag size={20} />
-        </div>
+        <div className="logo-icon"><ShoppingBag size={20} /></div>
         <span>UFOS</span>
       </div>
       <nav className="nav-links">
-        {role === 'student' && (
+        {user.role === 'student' && (
           <>
             <button className={`nav-btn ${view === 'vendors' ? 'active' : ''}`} onClick={() => setView('vendors')}>
               <Store size={18} /> Vendors
@@ -167,466 +107,356 @@ const Header = ({ title, user, cartCount, setView, view, logout, role }) => (
    ================================================================================== */
 
 // --- LOGIN PAGE (Split View for Desktop) ---
-const LoginScreen = ({ onLogin }) => (
-  <div className="login-wrapper">
-    {/* Left Panel: Hero / Brand */}
-    <div className="login-left">
-      <div className="login-brand">
-        <div className="login-brand-icon">
-          <Utensils size={32} />
-        </div>
-        <span className="login-brand-text">UFOS</span>
-      </div>
-      <div className="login-hero-text">
-        <h1>Skip the Queue,<br/>Savor the Food.</h1>
-        <p>The unified ordering platform for Habib University. Pre-order your meals from campus cafes and pick them up instantly between classes.</p>
-      </div>
-    </div>
+const LoginScreen = ({ onLogin }) => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-    {/* Right Panel: Login Form */}
-    <div className="login-right">
-      <div className="login-card">
-        <h2>Welcome Back</h2>
-        <p>Please select your portal to continue.</p>
-
-        <button className="login-btn-lg" onClick={() => onLogin('student', null)}>
-          <User size={24} />
-          Login as Student
-        </button>
-
-        <div className="vendor-access-section">
-          <p className="vendor-access-title">Vendor Demo Access</p>
-          <div className="vendor-grid-sm">
-            {VENDORS.slice(0, 4).map(vendor => (
-              <button key={vendor.id} className="vendor-btn-sm" onClick={() => onLogin('vendor', vendor.id)}>
-                {vendor.name}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-);
-
-// --- STUDENT DASHBOARD ---
-const StudentApp = ({ user, logout }) => {
-  const [view, setView] = useState('vendors');
-  const [selectedVendor, setSelectedVendor] = useState(null);
-  const [cart, setCart] = useState([]);
-  const [activeOrders, setActiveOrders] = useState([]);
-  const [pickupTime, setPickupTime] = useState('11:30'); 
-
-  useEffect(() => {
-    if (!user || !db) return;
-    const q = query(
-      collection(db, 'artifacts', appId, 'public', 'data', 'orders'),
-      where('customerId', '==', user.uid)
-    );
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const orders = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-      orders.sort((a, b) => b.createdAt?.seconds - a.createdAt?.seconds);
-      setActiveOrders(orders);
-    });
-    return () => unsubscribe();
-  }, [user]);
-
-  const addToCart = (item) => {
-    setCart(prev => {
-      const existing = prev.find(i => i.id === item.id);
-      if (existing) {
-        return prev.map(i => i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i);
-      }
-      return [...prev, { ...item, quantity: 1, vendorId: selectedVendor.id, vendorName: selectedVendor.name }];
-    });
-  };
-
-  const removeFromCart = (itemId) => setCart(prev => prev.filter(i => i.id !== itemId));
-  const calculateTotal = () => cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-
-  const placeOrder = async () => {
-    // 1. Safety Check: Is the cart empty?
-    if (cart.length === 0) {
-        alert("Your cart is empty!");
-        return;
-    }
-
-    // 2. Safety Check: Is the database connected?
-    if (!db) {
-        alert("Database not connected! Check your .env keys and restart the server.");
-        console.error("Database Object is undefined.");
-        return;
-    }
-    
-    // Group items by vendor (Existing logic)
-    const ordersByVendor = {};
-    cart.forEach(item => {
-      if (!ordersByVendor[item.vendorId]) {
-        ordersByVendor[item.vendorId] = { items: [], total: 0, vendorName: item.vendorName };
-      }
-      ordersByVendor[item.vendorId].items.push(item);
-      ordersByVendor[item.vendorId].total += item.price * item.quantity;
-    });
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
 
     try {
-        // 3. Attempt to send to Firebase
-        const batchPromises = Object.keys(ordersByVendor).map(async (vId) => {
-          const orderData = {
-            customerId: user.uid,
-            customerName: 'Student ' + user.uid.slice(0, 4),
-            vendorId: vId,
-            vendorName: ordersByVendor[vId].vendorName,
-            items: ordersByVendor[vId].items,
-            total: ordersByVendor[vId].total,
-            status: 'pending',
-            pickupTime: pickupTime,
-            createdAt: serverTimestamp(),
-          };
-          
-          console.log("Sending Order:", orderData); // Debug log
-          
-          await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'orders'), orderData);
-        });
-    
-        await Promise.all(batchPromises);
-        
-        // 4. Success!
-        alert("Order Placed Successfully!");
-        setCart([]);
-        setView('orders');
+      const res = await fetch(`${API_URL}/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
 
-    } catch (error) {
-        // 5. Catch and Display Errors
-        console.error("Error placing order:", error);
-        alert("Error: " + error.message);
+      const data = await res.json();
+
+      if (res.ok) {
+        onLogin(data);
+      } else {
+        setError(data.error || 'Login failed');
+      }
+    } catch (err) {
+      setError('Cannot connect to server. Is XAMPP and node server.js running?');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="app-container">
-      <Header 
-        title="Student Portal" 
-        user={user} 
-        cartCount={cart.reduce((a,b)=>a+b.quantity,0)} 
-        setView={setView} 
-        view={view}
-        logout={logout}
-        role="student"
-      />
+    <div className="login-wrapper">
+      <div className="login-left">
+        <div className="login-brand">
+          <div className="login-brand-icon"><Utensils size={32} /></div>
+          <span className="login-brand-text">UFOS</span>
+        </div>
+        <div className="login-hero-text">
+          <h1>Skip the Queue,<br/>Savor the Food.</h1>
+          <p>The unified ordering platform. Login with your university credentials.</p>
+        </div>
+      </div>
 
-      <main className="container">
-        {/* VIEW: VENDOR LIST */}
-        {view === 'vendors' && (
-          <div>
-            <div className="hero-section">
-              <h1 className="hero-title">Hungry?</h1>
-              <p className="hero-subtitle">Order ahead from your favorite campus spots.</p>
+      <div className="login-right">
+        <div className="login-card">
+          <h2>Welcome Back</h2>
+          <p>Please login to continue.</p>
+
+          <form onSubmit={handleSubmit}>
+            <div style={{marginBottom: '1rem'}}>
+              <label style={{display: 'block', marginBottom: '0.5rem', fontWeight: '500'}}>Email</label>
+              <input 
+                type="email" 
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="student@hu.edu.pk"
+                style={{width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #e5e7eb'}}
+                required
+              />
             </div>
             
-            <div className="grid">
-              {VENDORS.map(vendor => (
-                <div key={vendor.id} className="card" onClick={() => { setSelectedVendor(vendor); setView('menu'); }}>
-                  <div className="card-header">
-                    <div className="card-icon" style={{color: vendor.theme}}>{vendor.icon}</div>
-                    <div>
-                      <h3 className="card-title">{vendor.name}</h3>
-                      <span className="card-sub">{vendor.cuisine}</span>
-                    </div>
+            <div style={{marginBottom: '1.5rem'}}>
+              <label style={{display: 'block', marginBottom: '0.5rem', fontWeight: '500'}}>Password</label>
+              <input 
+                type="password" 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter password"
+                style={{width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #e5e7eb'}}
+                required
+              />
+            </div>
+
+            {error && (
+              <div style={{color: '#dc2626', marginBottom: '1rem', fontSize: '0.9rem', background: '#fee2e2', padding: '10px', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                <AlertCircle size={16}/> {error}
+              </div>
+            )}
+
+            <button type="submit" className="login-btn-lg" disabled={loading}>
+              <Lock size={20} /> {loading ? 'Checking...' : 'Login'}
+            </button>
+          </form>
+          
+          <div style={{marginTop: '2rem', fontSize: '0.85rem', color: '#666', textAlign: 'center'}}>
+            Test Accounts:<br/>
+            Student: <b>student@hu.edu.pk</b> / <b>123</b><br/>
+            Vendor: <b>vendor@hu.edu.pk</b> / <b>123</b>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default function App() {
+  const [user, setUser] = useState(null);
+  const [view, setView] = useState('vendors');
+  const [cart, setCart] = useState([]);
+  const [activeOrders, setActiveOrders] = useState([]);
+  const [selectedVendor, setSelectedVendor] = useState(null);
+  const [pickupTime, setPickupTime] = useState(TIME_SLOTS[0]);
+  
+  // Hardcoded mapping for demo: If I login as vendor@hu.edu.pk, I own 'v_tapal'
+  const VENDOR_ID_MAPPING = {
+    'vendor@hu.edu.pk': 'v_tapal'
+  };
+
+  // Check Local Storage for persistent login
+  useEffect(() => {
+    const savedUser = localStorage.getItem('ufos_user');
+    if (savedUser) setUser(JSON.parse(savedUser));
+  }, []);
+
+  const handleLogin = (userData) => {
+    setUser(userData);
+    localStorage.setItem('ufos_user', JSON.stringify(userData));
+  };
+
+  const handleLogout = () => {
+    setUser(null);
+    localStorage.removeItem('ufos_user');
+    setView('vendors');
+    setCart([]);
+  };
+
+  // --- ORDER LOGIC ---
+
+  const placeOrder = async () => {
+    if (cart.length === 0) return;
+
+    // For this simple MySQL Demo, we only process the items for ONE vendor at a time from the cart
+    // In a real app, you'd loop through vendors.
+    const firstItem = cart[0];
+    const total = cart.reduce((sum, i) => sum + (i.price * i.quantity), 0);
+
+    const orderData = {
+      customerId: user.id,
+      vendorId: firstItem.vendorId,
+      vendorName: firstItem.vendorName,
+      total: total,
+      pickupTime: pickupTime
+    };
+
+    try {
+      const res = await fetch(`${API_URL}/orders`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(orderData)
+      });
+
+      if (res.ok) {
+        alert("Order Placed Successfully!");
+        setCart([]);
+        setView('orders');
+        fetchOrders(); // Refresh orders
+      } else {
+        alert("Failed to place order.");
+      }
+    } catch (err) {
+      alert("Error connecting to server");
+    }
+  };
+
+  const fetchOrders = async () => {
+    if (!user) return;
+    
+    let url = `${API_URL}/orders?userId=${user.id}&role=${user.role}`;
+    
+    // If I am a vendor, I need to know MY vendor ID
+    if (user.role === 'vendor') {
+      const myVendorId = VENDOR_ID_MAPPING[user.email];
+      url = `${API_URL}/orders?vendorId=${myVendorId}&role=vendor`;
+    }
+
+    try {
+      const res = await fetch(url);
+      const data = await res.json();
+      setActiveOrders(data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const updateStatus = async (orderId, newStatus) => {
+    try {
+      const res = await fetch(`${API_URL}/orders/${orderId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus })
+      });
+      if (res.ok) {
+        // Optimistic UI Update
+        setActiveOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
+      }
+    } catch (err) {
+      alert("Failed to update status");
+    }
+  };
+
+  // Poll for updates every 3 seconds
+  useEffect(() => {
+    if (user && (view === 'orders' || user.role === 'vendor')) {
+      fetchOrders();
+      const interval = setInterval(fetchOrders, 3000);
+      return () => clearInterval(interval);
+    }
+  }, [user, view]);
+
+  // --- RENDER ---
+
+  if (!user) return <LoginScreen onLogin={handleLogin} />;
+
+  return (
+    <div className="app-container">
+      <Header user={user} cartCount={cart.reduce((a,b)=>a+b.quantity,0)} setView={setView} view={view} logout={handleLogout} />
+      
+      <main className="container">
+        {/* === VENDOR VIEW === */}
+        {user.role === 'vendor' ? (
+          <div>
+            <div className="vendor-header-row">
+              <h2 className="page-title" style={{marginBottom: 0}}>Vendor Dashboard</h2>
+              <div className="active-orders-badge">{activeOrders.filter(o => o.status !== 'completed').length} Active Orders</div>
+            </div>
+
+            <div className="dashboard-grid">
+               <div className="stat-card" style={{borderColor: '#f59e0b'}}><div className="stat-label">Pending</div><div className="stat-number">{activeOrders.filter(o=>o.status==='pending').length}</div></div>
+               <div className="stat-card" style={{borderColor: '#3b82f6'}}><div className="stat-label">In Prep</div><div className="stat-number">{activeOrders.filter(o=>o.status==='accepted').length}</div></div>
+               <div className="stat-card" style={{borderColor: '#10b981'}}><div className="stat-label">Ready</div><div className="stat-number">{activeOrders.filter(o=>o.status==='ready').length}</div></div>
+            </div>
+
+            <h3 className="section-heading">Incoming Orders</h3>
+            <div className="orders-grid">
+              {activeOrders.filter(o => o.status !== 'completed').map(order => (
+                <div key={order.id} className="card" style={{borderLeft: order.status === 'pending' ? '4px solid #f59e0b' : '1px solid #e5e7eb'}}>
+                  <div className="order-card-compact-header">
+                    <strong style={{fontSize: '1.1rem'}}>Order #{order.id}</strong>
+                    <span className="pickup-tag">{order.pickup_time}</span>
                   </div>
-                  <div className="card-footer">
-                    <span className="view-menu-link">
-                      View Menu <ArrowLeft size={16} className="arrow-icon"/>
-                    </span>
+                  <div className="mb-4">
+                    <div style={{fontSize: '1.2rem', fontWeight: 'bold'}}>Total: PKR {order.total}</div>
+                    <div style={{color: '#666', fontSize: '0.9rem'}}>Customer ID: {order.customer_id}</div>
+                  </div>
+                  <div className="action-buttons">
+                    {order.status === 'pending' && <button className="btn btn-action bg-blue" onClick={() => updateStatus(order.id, 'accepted')}>Accept</button>}
+                    {order.status === 'accepted' && <button className="btn btn-action bg-yellow" onClick={() => updateStatus(order.id, 'ready')}>Mark Ready</button>}
+                    {order.status === 'ready' && <button className="btn btn-action bg-green" onClick={() => updateStatus(order.id, 'completed')}>Complete</button>}
                   </div>
                 </div>
               ))}
             </div>
           </div>
-        )}
-
-        {/* VIEW: MENU & CART */}
-        {((view === 'menu' && selectedVendor) || view === 'cart') && (
-          <div className="split-view">
-            {/* Left: Menu */}
-            <div>
-              {selectedVendor && (
-                <div className="menu-header">
-                  <button onClick={() => setView('vendors')} className="back-btn">
-                    <ArrowLeft size={20} />
-                  </button>
-                  <div>
-                    <h2 className="menu-title">{selectedVendor.name}</h2>
-                    <span style={{color: '#6b7280'}}>Full Menu</span>
-                  </div>
-                </div>
-              )}
-              
-              {view === 'menu' && selectedVendor ? (
-                <div className="menu-grid">
-                  {(MOCK_MENU[selectedVendor.id] || []).map(item => (
-                    <div key={item.id} className="menu-item">
-                      <div>
-                        <div className="item-name">{item.name}</div>
-                        <div className="item-price">PKR {item.price}</div>
-                      </div>
-                      <button className="btn btn-add" onClick={() => addToCart(item)}>Add +</button>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="empty-menu">
-                  Select a vendor to view their menu.
-                </div>
-              )}
-            </div>
-
-            {/* Right: Cart Summary */}
-            <div>
-              <div className="cart-summary">
-                <h3 className="cart-title">Current Order</h3>
-                {cart.length === 0 ? (
-                  <div className="cart-empty-state">
-                    <ShoppingBag size={48} className="cart-empty-icon" />
-                    <p>Your cart is empty.</p>
-                  </div>
-                ) : (
-                  <>
-                    <div className="cart-items">
-                      {cart.map((item, idx) => (
-                        <div key={idx} className="cart-item-row">
-                          <div className="cart-item-info">
-                            <span className="qty-tag">x{item.quantity}</span>
-                            <span>{item.name}</span>
-                          </div>
-                          <div className="cart-item-actions">
-                            <span className="item-total">PKR {item.price * item.quantity}</span>
-                            <XCircle size={16} className="remove-btn" onClick={() => removeFromCart(item.id)} />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    
-                    <div className="pickup-section">
-                      <label className="input-label">Pickup Time</label>
-                      <div className="time-selector">
-                        {['11:30', '13:00', '15:15', '17:00'].map(t => (
-                          <button 
-                            key={t}
-                            onClick={() => setPickupTime(t)}
-                            className={`time-btn ${pickupTime === t ? 'active' : ''}`}
-                          >
-                            {t}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="total-row">
-                      <span className="total-label">Total Amount</span>
-                      <span className="total-value">PKR {calculateTotal()}</span>
-                    </div>
-                    
-                    <button className="btn btn-primary" onClick={placeOrder}>
-                      Confirm & Pay
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* VIEW: ORDERS */}
-        {view === 'orders' && (
-          <div className="orders-wrapper">
-            <h2 className="page-title">Your Orders</h2>
-            {activeOrders.length === 0 ? (
-              <div className="orders-empty-state">
-                <Clock size={48} style={{color: '#d1d5db', margin: '0 auto 1rem'}} />
-                <p style={{color: '#6b7280', fontSize: '1.1rem'}}>No active orders right now.</p>
-                <button className="btn-outline" onClick={() => setView('vendors')}>
-                  Start a new order
-                </button>
-              </div>
-            ) : (
-              activeOrders.map(order => (
-                <div key={order.id} className="order-card">
-                  <div className="order-header">
-                    <div>
-                      <strong className="order-vendor-name">{order.vendorName}</strong>
-                      <div className="order-pickup-info">Pickup: {order.pickupTime}</div>
-                    </div>
-                    <span className={`status-badge status-${order.status}`}>{order.status}</span>
-                  </div>
-                  <div className="order-body">
-                    {order.items.map((item, i) => (
-                      <div key={i} className="flex-between mb-2" style={{fontSize: '0.95rem'}}>
-                        <span><span style={{fontWeight: '600'}}>{item.quantity}x</span> {item.name}</span>
-                        <span>PKR {item.price * item.quantity}</span>
-                      </div>
-                    ))}
-                    <div className="order-footer">
-                      <span className="order-id">Order ID: #{order.id.slice(-4)}</span>
-                      <span className="order-total">Total: PKR {order.total}</span>
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        )}
-      </main>
-    </div>
-  );
-};
-
-// --- VENDOR DASHBOARD ---
-const VendorApp = ({ user, vendorId, logout }) => {
-  const [orders, setOrders] = useState([]);
-  const vendorInfo = VENDORS.find(v => v.id === vendorId) || { name: 'Unknown Vendor' };
-
-  useEffect(() => {
-    if (!vendorId || !db) return;
-    const q = query(
-      collection(db, 'artifacts', appId, 'public', 'data', 'orders'),
-      where('vendorId', '==', vendorId)
-    );
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const ords = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-      ords.sort((a, b) => {
-        const priority = { 'pending': 1, 'accepted': 2, 'ready': 3, 'completed': 4 };
-        return (priority[a.status] - priority[b.status]) || (b.createdAt?.seconds - a.createdAt?.seconds);
-      });
-      setOrders(ords);
-    });
-    return () => unsubscribe();
-  }, [vendorId]);
-
-  const updateStatus = async (orderId, newStatus) => {
-    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'orders', orderId), { status: newStatus });
-  };
-
-  const activeOrders = orders.filter(o => o.status !== 'completed');
-
-  return (
-    <div className="app-container">
-      <Header title="Vendor Portal" user={user} logout={logout} role="vendor" />
-      
-      <main className="container">
-        <div className="vendor-header-row">
-          <h2 className="page-title" style={{marginBottom: 0}}>{vendorInfo.name} Dashboard</h2>
-          <div className="active-orders-badge">
-            {activeOrders.length} Active Orders
-          </div>
-        </div>
-
-        <div className="dashboard-grid">
-          <div className="stat-card" style={{borderColor: '#f59e0b'}}>
-            <div className="stat-label">Pending</div>
-            <div className="stat-number">{orders.filter(o=>o.status==='pending').length}</div>
-          </div>
-          <div className="stat-card" style={{borderColor: '#3b82f6'}}>
-            <div className="stat-label">In Prep</div>
-            <div className="stat-number">{orders.filter(o=>o.status==='accepted').length}</div>
-          </div>
-          <div className="stat-card" style={{borderColor: '#10b981'}}>
-            <div className="stat-label">Ready</div>
-            <div className="stat-number">{orders.filter(o=>o.status==='ready').length}</div>
-          </div>
-        </div>
-
-        <h3 className="section-heading">Incoming Orders</h3>
-        {activeOrders.length === 0 ? (
-          <div className="vendor-empty-state">
-            No active orders. Good time for a break!
-          </div>
         ) : (
-          <div className="orders-grid">
-            {activeOrders.map(order => (
-              <div key={order.id} className="card" style={{borderLeft: order.status === 'pending' ? '4px solid #f59e0b' : '1px solid #e5e7eb'}}>
-                <div className="order-card-compact-header">
-                  <strong style={{fontSize: '1.1rem'}}>#{order.id.slice(-4)}</strong>
-                  <span className="pickup-tag">{order.pickupTime}</span>
+          /* === STUDENT VIEW === */
+          <>
+            {view === 'vendors' && (
+              <div>
+                <div className="hero-section">
+                   <h1 className="hero-title">Hungry?</h1>
+                   <p className="hero-subtitle">Order ahead from your favorite campus spots.</p>
                 </div>
-                <div className="mb-4">
-                  {order.items.map((item, i) => (
-                    <div key={i} className="item-row">
-                      <strong className="item-qty">{item.quantity}x</strong> {item.name}
+                <div className="grid">
+                  {VENDORS.map(v => (
+                    <div key={v.id} className="card" onClick={() => { setSelectedVendor(v); setView('menu'); }}>
+                       <div className="card-header"><div className="card-icon" style={{color:v.theme}}>{v.icon}</div><h3>{v.name}</h3></div>
+                       <div className="card-footer"><span className="view-menu-link">View Menu <ArrowLeft size={16} className="arrow-icon"/></span></div>
                     </div>
                   ))}
                 </div>
-                <div className="action-buttons">
-                  {order.status === 'pending' && (
-                    <button className="btn btn-action bg-blue" onClick={() => updateStatus(order.id, 'accepted')}>Accept</button>
-                  )}
-                  {order.status === 'accepted' && (
-                    <button className="btn btn-action bg-yellow" onClick={() => updateStatus(order.id, 'ready')}>Mark Ready</button>
-                  )}
-                  {order.status === 'ready' && (
-                    <button className="btn btn-action bg-green" onClick={() => updateStatus(order.id, 'completed')}>Complete</button>
-                  )}
+              </div>
+            )}
+
+            {view === 'menu' && selectedVendor && (
+              <div className="split-view">
+                <div>
+                   <div className="menu-header">
+                     <button onClick={()=>setView('vendors')} className="back-btn"><ArrowLeft size={20}/></button>
+                     <div><h2 className="menu-title">{selectedVendor.name}</h2></div>
+                   </div>
+                   <div className="menu-grid">
+                     {(MOCK_MENU[selectedVendor.id] || []).map(item => (
+                       <div key={item.id} className="menu-item">
+                         <div>
+                            <div className="item-name">{item.name}</div>
+                            <div className="item-price">PKR {item.price}</div>
+                         </div>
+                         <button className="btn btn-add" onClick={() => setCart([...cart, {...item, vendorId: selectedVendor.id, vendorName: selectedVendor.name, quantity: 1}])}>Add</button>
+                       </div>
+                     ))}
+                   </div>
+                </div>
+                <div>
+                  <div className="cart-summary">
+                     <h3 className="cart-title">Cart</h3>
+                     {cart.length === 0 ? <p className="cart-empty-state">Empty</p> : (
+                       <>
+                        {cart.map((i, idx) => (
+                          <div key={idx} className="cart-item-row">
+                             <span>{i.name}</span>
+                             <span>{i.price}</span>
+                          </div>
+                        ))}
+                        <div className="pickup-section">
+                          <label className="input-label">Pickup Time</label>
+                            <div className="time-selector">
+                              {TIME_SLOTS.map(t => (
+                                <button 
+                                  key={t} 
+                                  onClick={() => setPickupTime(t)} 
+                                  className={`time-btn ${pickupTime === t ? 'active' : ''}`}
+                                >
+                                  {t}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        <div className="total-row"><span className="total-label">Total</span><span className="total-value">PKR {cart.reduce((a,b)=>a+b.price,0)}</span></div>
+                        <button className="btn btn-primary" onClick={placeOrder}>Confirm Order</button>
+                       </>
+                     )}
+                  </div>
                 </div>
               </div>
-            ))}
-          </div>
+            )}
+
+            {view === 'orders' && (
+              <div className="orders-wrapper">
+                <h2 className="page-title">Your Orders</h2>
+                {activeOrders.map(o => (
+                  <div key={o.id} className="order-card">
+                    <div className="order-header">
+                      <div><strong className="order-vendor-name">{o.vendor_name}</strong><div className="order-pickup-info">Pickup: {o.pickup_time}</div></div>
+                      <span className={`status-badge status-${o.status}`}>{o.status}</span>
+                    </div>
+                    <div className="order-body">
+                       <div className="order-footer">
+                         <span className="order-id">Order ID: #{o.id}</span>
+                         <span className="order-total">Total: PKR {o.total}</span>
+                       </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
         )}
       </main>
     </div>
-  );
-};
-
-/* ==================================================================================
-   SECTION 6: MAIN APP CONTAINER
-   ================================================================================== */
-
-export default function App() {
-  const [user, setUser] = useState(null);
-  const [role, setRole] = useState(null); 
-  const [vendorId, setVendorId] = useState(null);
-  const [authError, setAuthError] = useState(null);
-
-  useEffect(() => {
-    if (configMissing) return;
-    const initAuth = async () => {
-      try {
-        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-          await signInWithCustomToken(auth, __initial_auth_token);
-        } else {
-          await signInAnonymously(auth);
-        }
-      } catch (err) {
-        console.error("Auth Error:", err);
-        setAuthError(err.message);
-      }
-    };
-    initAuth();
-    const unsubscribe = onAuthStateChanged(auth, setUser);
-    return () => unsubscribe();
-  }, []);
-
-  const handleLogin = (selectedRole, selectedVendorId) => {
-    setRole(selectedRole);
-    if (selectedVendorId) setVendorId(selectedVendorId);
-  };
-
-  const handleLogout = () => {
-    setRole(null);
-    setVendorId(null);
-  };
-
-  if (configMissing) return <ConfigErrorScreen />;
-  if (authError) return <div className="auth-error-box"><h2>Auth Error</h2><p>{authError}</p></div>;
-  if (!user) return <div className="full-screen-center">Loading UFOS...</div>;
-
-  return (
-    <>
-      {!role ? (
-        <LoginScreen onLogin={handleLogin} />
-      ) : role === 'vendor' ? (
-        <VendorApp user={user} vendorId={vendorId} logout={handleLogout} />
-      ) : (
-        <StudentApp user={user} logout={handleLogout} />
-      )}
-    </>
   );
 }
