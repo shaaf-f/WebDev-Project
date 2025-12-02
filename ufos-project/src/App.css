@@ -248,6 +248,7 @@ body {
 .bg-blue { background: var(--blue); }
 .bg-yellow { background: var(--warning); }
 .bg-green { background: var(--success); }
+.bg-red { background: #ef4444; }
 
 /* --- Time Selector Container --- */
 .time-selector {
