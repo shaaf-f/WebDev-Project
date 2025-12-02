@@ -163,7 +163,7 @@ body {
   background: var(--white); padding: 2rem; border-radius: 1rem; position: sticky;
   top: 6rem; box-shadow: var(--shadow-lg); border: 1px solid var(--border);
 }
-.cart-title { margin-top: 0; fontSize: 1.25rem; margin-bottom: 1.5rem; }
+.cart-title { margin-top: 0; font-size: 1.25rem; margin-bottom: 1.5rem; }
 
 .cart-empty-state { text-align: center; padding: 2rem 0; color: #9ca3af; }
 .cart-empty-icon { margin: 0 auto 1rem; opacity: 0.5; }

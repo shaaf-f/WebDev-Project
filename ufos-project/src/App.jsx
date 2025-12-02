@@ -50,14 +50,14 @@ if (typeof __firebase_config !== 'undefined') {
 // 2. Local fallback
 else {
   const localConfig = {
-    apiKey: import.meta.env.VITE_FIREBASE_API_KEY, 
-    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-    appId: import.meta.env.VITE_FIREBASE_APP_ID,
-    measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
-  };
+    // apiKey: import.meta.env.VITE_FIREBASE_API_KEY, 
+    // authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+    // projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+    // storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+    // messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+    // appId: import.meta.env.VITE_FIREBASE_APP_ID,
+    // measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
+  };  
 
   if (!localConfig.apiKey) {
     configMissing = true;
@@ -78,40 +78,41 @@ const appId = typeof __app_id !== 'undefined' ? __app_id : 'ufos-v1';
    ================================================================================== */
 
 const VENDORS = [
-  { id: 'v_tapal', name: 'Tapal Cafeteria', cuisine: 'Desi & Meals', icon: '🍛', theme: '#ea580c' },
-  { id: 'v_cafe2go', name: 'Cafe-2-Go', cuisine: 'Sandwiches & Coffee', icon: '☕', theme: '#15803d' },
-  { id: 'v_sync', name: 'Sync', cuisine: 'Fast Food', icon: '🍔', theme: '#b91c1c' },
-  { id: 'v_grito', name: 'Grito', cuisine: 'Wraps & Rolls', icon: '🌯', theme: '#ca8a04' },
-  { id: 'v_sky', name: 'Sky Dhaaba', cuisine: 'Tea & Snacks', icon: '☕', theme: '#1d4ed8' },
-  { id: 'v_rahim', name: 'Rahim Bhai Fries', cuisine: 'Fries & Chaat', icon: '🍟', theme: '#a16207' },
+  { id: 'v_tapal', name: 'Tapal Cafeteria', cuisine: 'Normal Dining & Cuisine', icon: '🍛', theme: '#b91c1c' },
+  { id: 'v_cafe2go', name: 'Cafe-2-Go', cuisine: 'Sandwiches & Rolls', icon: '🌯', theme: '#ca8a04' },
+  { id: 'v_sync', name: 'Sync', cuisine: 'Coffee', icon: '☕', theme: '#0063f7ff' },
+  { id: 'v_grito', name: 'Grito', cuisine: 'Smoothies & Food', icon: '🌯', theme: '#73ff00ff' },
+  { id: 'v_sky', name: 'Sky Dhaaba', cuisine: 'Tea & Pakistani Breakfast', icon: '☕', theme: '#084600ff' },
+  { id: 'v_rahim', name: 'Rahim Bhai Fries', cuisine: ":'(", icon: '🍟', theme: '#e5ff00ff' },
 ];
 
 const MOCK_MENU = {
   'v_tapal': [
-    { id: 't1', name: 'Chicken Biryani', price: 350, category: 'Main' },
-    { id: 't2', name: 'Daal Chawal', price: 200, category: 'Main' },
-    { id: 't3', name: 'Samosa', price: 50, category: 'Snacks' },
+    { id: 't1', name: 'Mutton Biryani', price: 350, category: 'Main' },
+    { id: 't2', name: 'Chicken Karahi', price: 250, category: 'Main' },
+    { id: 't3', name: 'Naan', price: 30, category: 'Bread' },
   ],
   'v_cafe2go': [
-    { id: 'c1', name: 'Iced Latte', price: 450, category: 'Drinks' },
-    { id: 'c2', name: 'Club Sandwich', price: 500, category: 'Food' },
+    { id: 'c1', name: 'Chicken Nuggets & Fries', price: 400, category: 'Continental' },
+    { id: 'c2', name: 'Club Sandwich', price: 500, category: 'Sandwiches' },
     { id: 'c3', name: 'Brownie', price: 250, category: 'Dessert' },
+    { id: 'c4', name: 'Cola Next', price: 100, category: 'Drinks' }
   ],
   'v_sync': [
-    { id: 's1', name: 'Zinger Burger', price: 550, category: 'Burger' },
-    { id: 's2', name: 'Chicken Piece', price: 250, category: 'Fried Chicken' },
+    { id: 's1', name: 'Latte', price: 550, category: 'Iced Coffee' },
+    { id: 's2', name: 'Caramel Latte', price: 500, category: 'Hot Coffee' },
   ],
   'v_grito': [
-    { id: 'g1', name: 'Chicken Chatni Roll', price: 220, category: 'Rolls' },
-    { id: 'g2', name: 'Mayo Garlic Roll', price: 240, category: 'Rolls' },
+    { id: 'g1', name: 'Vanilla Shake', price: 400, category: 'Drinks' },
+    { id: 'g2', name: 'Hot Shots', price: 350, category: 'Food' },
   ],
   'v_sky': [
-    { id: 'sk1', name: 'Doodh Patti', price: 80, category: 'Tea' },
-    { id: 'sk2', name: 'Paratha', price: 100, category: 'Breakfast' },
+    { id: 'sk1', name: 'Chai', price: 120, category: 'Tea' },
+    { id: 'sk2', name: 'Aloo Paratha', price: 300, category: 'Breakfast' },
   ],
   'v_rahim': [
-    { id: 'r1', name: 'Masala Fries', price: 150, category: 'Fries' },
-    { id: 'r2', name: 'Mayo Fries', price: 200, category: 'Fries' },
+    { id: 'r1', name: 'Large Masala Fries', price: 130, category: 'Fries' },
+    { id: 'r2', name: 'Medium Ketchup Fries', price: 70, category: 'Fries' },
   ],
 };
 
@@ -244,8 +245,20 @@ const StudentApp = ({ user, logout }) => {
   const calculateTotal = () => cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
   const placeOrder = async () => {
-    if (cart.length === 0) return;
+    // 1. Safety Check: Is the cart empty?
+    if (cart.length === 0) {
+        alert("Your cart is empty!");
+        return;
+    }
+
+    // 2. Safety Check: Is the database connected?
+    if (!db) {
+        alert("Database not connected! Check your .env keys and restart the server.");
+        console.error("Database Object is undefined.");
+        return;
+    }
     
+    // Group items by vendor (Existing logic)
     const ordersByVendor = {};
     cart.forEach(item => {
       if (!ordersByVendor[item.vendorId]) {
@@ -255,24 +268,38 @@ const StudentApp = ({ user, logout }) => {
       ordersByVendor[item.vendorId].total += item.price * item.quantity;
     });
 
-    const batchPromises = Object.keys(ordersByVendor).map(async (vId) => {
-      const orderData = {
-        customerId: user.uid,
-        customerName: 'Student ' + user.uid.slice(0, 4),
-        vendorId: vId,
-        vendorName: ordersByVendor[vId].vendorName,
-        items: ordersByVendor[vId].items,
-        total: ordersByVendor[vId].total,
-        status: 'pending',
-        pickupTime: pickupTime,
-        createdAt: serverTimestamp(),
-      };
-      await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'orders'), orderData);
-    });
+    try {
+        // 3. Attempt to send to Firebase
+        const batchPromises = Object.keys(ordersByVendor).map(async (vId) => {
+          const orderData = {
+            customerId: user.uid,
+            customerName: 'Student ' + user.uid.slice(0, 4),
+            vendorId: vId,
+            vendorName: ordersByVendor[vId].vendorName,
+            items: ordersByVendor[vId].items,
+            total: ordersByVendor[vId].total,
+            status: 'pending',
+            pickupTime: pickupTime,
+            createdAt: serverTimestamp(),
+          };
+          
+          console.log("Sending Order:", orderData); // Debug log
+          
+          await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'orders'), orderData);
+        });
+    
+        await Promise.all(batchPromises);
+        
+        // 4. Success!
+        alert("Order Placed Successfully!");
+        setCart([]);
+        setView('orders');
 
-    await Promise.all(batchPromises);
-    setCart([]);
-    setView('orders');
+    } catch (error) {
+        // 5. Catch and Display Errors
+        console.error("Error placing order:", error);
+        alert("Error: " + error.message);
+    }
   };
 
   return (
