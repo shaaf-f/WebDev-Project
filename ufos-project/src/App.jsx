@@ -5,10 +5,6 @@ import {
   ShoppingBag, Clock, XCircle, ArrowLeft, LogOut, User, Store, Utensils, Lock, AlertCircle
 } from 'lucide-react';
 
-/* ==================================================================================
-   SECTION 1: CONSTANTS & DATA
-   ================================================================================== */
-
 const API_URL = 'http://localhost:3001/api';
 
 const VENDORS = [
@@ -26,22 +22,18 @@ const generateTimeSlots = () => {
   const currentHours = now.getHours();
   const currentMinutes = now.getMinutes();
   
-  // Always include a testing slot (1:00 AM) regardless of time
   times.push('01:00 (Testing)');
   
-  // Always include 8:30 AM
   times.push('08:30');
   
-  // Generate slots from 9:00 AM to 6:30 PM in 15-minute intervals
-  let minutes = 9 * 60; // Start at 9:00 AM
-  const end = 18 * 60 + 30;  // End at 6:30 PM
+  let minutes = 9 * 60; 
+  const end = 18 * 60 + 30;
 
   while (minutes <= end) {
     const h = Math.floor(minutes / 60);
     const m = minutes % 60;
     const timeStr = `${h}:${m.toString().padStart(2, '0')}`;
     
-    // Only add slots that are at least 15 minutes from now (unless it's the testing slot)
     const [slotH, slotM] = timeStr.split(':').map(Number);
     const slotTotalMinutes = slotH * 60 + slotM;
     const currentTotalMinutes = currentHours * 60 + currentMinutes;
@@ -58,14 +50,13 @@ const generateTimeSlots = () => {
 
 const TIME_SLOTS = generateTimeSlots();
 
-// --- CART PAGE COMPONENT ---
 const CartPage = ({ cart, removeFromCart, placeOrder, setView, pickupTime, setPickupTime }) => {
   const now = new Date();
   const currentHours = now.getHours();
   const currentMinutes = now.getMinutes();
   
-  const isBeforeOrderingTime = currentHours < 8; // Can't order before 8am
-  const isAfterOrderingTime = currentHours >= 18 && (currentHours > 18 || currentMinutes > 30); // After 6:30pm
+  const isBeforeOrderingTime = currentHours < 8; 
+  const isAfterOrderingTime = currentHours >= 18 && (currentHours > 18 || currentMinutes > 30); 
   
   if (cart.length === 0) {
     return (
@@ -79,7 +70,6 @@ const CartPage = ({ cart, removeFromCart, placeOrder, setView, pickupTime, setPi
 
   const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
-  // Group items by vendor
   const cartByVendor = cart.reduce((acc, item) => {
     const vendor = VENDORS.find(v => v.id === item.vendor_id);
     const vendorName = vendor ? vendor.name : 'Unknown Vendor';
@@ -155,10 +145,6 @@ const CartPage = ({ cart, removeFromCart, placeOrder, setView, pickupTime, setPi
     </div>
   );
 };
-
-/* ==================================================================================
-   SECTION 2: COMPONENTS
-   ================================================================================== */
 
 
    
@@ -268,7 +254,6 @@ const LoginScreen = ({ onLogin }) => {
       const data = await res.json();
 
       if (res.ok) {
-        // Auto-login after registration
         onLogin(data);
       } else {
         setError(data.error || 'Registration failed');
@@ -401,7 +386,7 @@ const LoginScreen = ({ onLogin }) => {
 export default function App() {
   const [user, setUser] = useState(null);
   const [view, setView] = useState('vendors');
-  const [vendorView, setVendorView] = useState('orders'); // 'orders' or 'products'
+  const [vendorView, setVendorView] = useState('orders'); 
   const [cart, setCart] = useState([]);
   const [activeOrders, setActiveOrders] = useState([]);
   const [selectedVendor, setSelectedVendor] = useState(null);
@@ -413,7 +398,6 @@ export default function App() {
   const [showAddProductForm, setShowAddProductForm] = useState(false);
   const [newProduct, setNewProduct] = useState({ product_id: '', name: '', price: '', category: '' });
   
-  // Hardcoded mapping for demo vendors
   const VENDOR_ID_MAPPING = {
     'vendor@hu.edu.pk': 'v_tapal',
     'cafe2go@hu.edu.pk': 'v_cafe2go',
@@ -423,7 +407,6 @@ export default function App() {
     'rahim@hu.edu.pk': 'v_rahim'
   };
 
-  // Check Local Storage for persistent login
   useEffect(() => {
     const savedUser = localStorage.getItem('ufos_user');
     if (savedUser) {
@@ -451,8 +434,6 @@ export default function App() {
     setVendorEarnings({ today: 0, month: 0 });
   };
 
-  // --- MENU & CART LOGIC ---
-
   useEffect(() => {
     if (selectedVendor) {
       axios.get(`${API_URL}/products/${selectedVendor.id}`)
@@ -464,31 +445,25 @@ export default function App() {
   const fetchCart = (userId) => {
     axios.get(`${API_URL}/cart/${userId}`)
       .then(async (res) => {
-        // Filter out any disabled products from cart
         const cartItems = res.data;
         if (cartItems.length === 0) {
           setCart([]);
           return;
         }
         
-        // Get vendor ID from first item
         const vendorId = cartItems[0].vendor_id;
         
-        // Fetch enabled products for this vendor
         try {
           const enabledRes = await axios.get(`${API_URL}/products/${vendorId}`);
           const enabledProductIds = new Set(enabledRes.data.map(p => p.product_id));
           
-          // Filter cart to only enabled items
           const validItems = cartItems.filter(item => enabledProductIds.has(item.product_id));
           
-          // If items were removed, update database
           if (validItems.length !== cartItems.length) {
             const removedIds = cartItems
               .filter(item => !enabledProductIds.has(item.product_id))
               .map(item => item.product_id);
             
-            // Delete each disabled item from database
             for (const productId of removedIds) {
               await axios.delete(`${API_URL}/cart/${userId}/${productId}`).catch(() => {});
             }
@@ -506,18 +481,15 @@ export default function App() {
   const addToCart = (item) => {
     if (!user) return;
     
-    // Check if cart has items from a different vendor
     if (cart.length > 0) {
       const cartVendorId = cart[0].vendor_id;
       if (cartVendorId !== item.vendor_id) {
-        // Different vendor - ask user to confirm clearing cart
         const confirmClear = window.confirm(
           `Your cart contains items from ${VENDORS.find(v => v.id === cartVendorId)?.name}.\n\nClear cart and add item from ${VENDORS.find(v => v.id === item.vendor_id)?.name}?`
         );
         
-        if (!confirmClear) return; // User cancelled
+        if (!confirmClear) return; 
         
-        // Clear cart and add new item
         axios.delete(`${API_URL}/cart/${user.id}`)
           .then(() => {
             axios.post(`${API_URL}/cart/${user.id}`, { productId: item.product_id, quantity: 1 })
@@ -529,7 +501,6 @@ export default function App() {
       }
     }
     
-    // Same vendor or empty cart - add normally
     axios.post(`${API_URL}/cart/${user.id}`, { productId: item.product_id, quantity: 1 })
       .then(() => fetchCart(user.id))
       .catch(err => console.error('Failed to add to cart:', err));
@@ -542,7 +513,6 @@ export default function App() {
       .catch(err => console.error('Failed to remove from cart:', err));
   };
 
-  // --- ORDER LOGIC ---
 
   const placeOrder = async () => {
     if (cart.length === 0 || !user) return;
@@ -550,20 +520,16 @@ export default function App() {
     const firstItem = cart[0];
     const vendorId = firstItem.vendor_id;
     
-    // Validate all cart items are still enabled
     try {
       const res = await fetch(`${API_URL}/products/${vendorId}`);
       const enabledProducts = await res.json();
       const enabledProductIds = new Set(enabledProducts.map(p => p.product_id));
       
-      // Update menu to only show enabled products
       setMenu(prev => ({ ...prev, [vendorId]: enabledProducts }));
       
-      // Filter cart to only include enabled products
       const validCartItems = cart.filter(item => enabledProductIds.has(item.product_id));
       
       if (validCartItems.length !== cart.length) {
-        // Some items were removed
         setCart(validCartItems);
         alert('Some items in your cart are no longer available. They have been removed.');
         if (validCartItems.length === 0) {
@@ -597,13 +563,12 @@ export default function App() {
       });
 
       if (orderRes.ok) {
-        // Clear cart from database
         await fetch(`${API_URL}/cart/${user.id}`, { method: 'DELETE' });
         
         alert("Order Placed Successfully!");
         setCart([]);
         setView('orders');
-        fetchOrders(); // Refresh orders
+        fetchOrders();
       } else {
         const errorData = await orderRes.json();
         alert(errorData.error || "Failed to place order.");
@@ -618,12 +583,10 @@ export default function App() {
     
     let url = `${API_URL}/orders?userId=${user.id}&role=${user.role}`;
     
-    // If I am a vendor, I need to know MY vendor ID
     if (user.role === 'vendor') {
       const myVendorId = VENDOR_ID_MAPPING[user.email];
       url = `${API_URL}/orders?vendorId=${myVendorId}&role=vendor`;
       
-      // Fetch vendor earnings
       fetchVendorEarnings(myVendorId);
     }
 
@@ -632,7 +595,6 @@ export default function App() {
       const data = await res.json();
       setActiveOrders(data);
       
-      // Fetch order items for each order
       data.forEach(order => {
         if (!orderItemsMap[order.id]) {
           fetchOrderItems(order.id);
@@ -746,9 +708,7 @@ export default function App() {
         body: JSON.stringify({ status: newStatus })
       });
       if (res.ok) {
-        // Optimistic UI Update
         setActiveOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
-        // Refresh earnings after status update
         if (user && user.role === 'vendor') {
           const myVendorId = VENDOR_ID_MAPPING[user.email];
           fetchVendorEarnings(myVendorId);
@@ -759,7 +719,6 @@ export default function App() {
     }
   };
 
-  // Poll for updates every 3 seconds
   useEffect(() => {
     if (user && (view === 'orders' || user.role === 'vendor')) {
       fetchOrders();
@@ -768,7 +727,6 @@ export default function App() {
     }
   }, [user, view]);
 
-  // Poll menu for updates every 3 seconds when viewing menu
   useEffect(() => {
     if (user && user.role === 'student' && view === 'menu' && selectedVendor) {
       const interval = setInterval(() => {
@@ -1089,7 +1047,6 @@ export default function App() {
             )}
           </div>
         ) : (
-          /* === STUDENT VIEW === */
           <>
             {view === 'vendors' && (
               <div>
