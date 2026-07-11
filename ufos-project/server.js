@@ -5,8 +5,22 @@ import bodyParser from 'body-parser';
 
 const app = express();
 
+// Allow requests from your local dev server AND your deployed Vercel site.
+// Add your Vercel URL here once you have it (e.g. https://your-app.vercel.app).
+const allowedOrigins = [
+  'http://localhost:5173',
+  'https://your-app.vercel.app', // <-- replace with your actual Vercel URL
+];
+
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: (origin, callback) => {
+    // allow requests with no origin (e.g. curl, Postman, server-to-server)
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type']

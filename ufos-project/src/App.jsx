@@ -5,7 +5,10 @@ import {
   ShoppingBag, Clock, XCircle, ArrowLeft, LogOut, User, Store, Utensils, Lock, AlertCircle
 } from 'lucide-react';
 
-const API_URL = 'http://localhost:3001/api';
+// In development this falls back to your local server.
+// In production (Vercel), set VITE_API_URL in the Vercel project settings
+// to your ngrok URL, e.g. https://abcd-1234.ngrok-free.app/api
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 const VENDORS = [
   { id: 'v_tapal', name: 'Tapal Cafeteria', cuisine: 'Normal Dining & Cuisine', icon: '🍛', logo: '/logos/tapal.svg', theme: '#b91c1c' },
@@ -226,7 +229,7 @@ const LoginScreen = ({ onLogin }) => {
       if (err.name === 'AbortError') {
         setError('Request timeout. Is the server running on port 3001?');
       } else {
-        setError('Cannot connect to server at http://localhost:3001/api. Please ensure XAMPP and node server.js are running.');
+        setError(`Cannot connect to server at ${API_URL}. Please ensure the backend server (and any tunnel) is running.`);
       }
     } finally {
       setLoading(false);
@@ -262,7 +265,7 @@ const LoginScreen = ({ onLogin }) => {
       if (err.name === 'AbortError') {
         setError('Request timeout. Is the server running on port 3001?');
       } else {
-        setError('Cannot connect to server at http://localhost:3001/api. Please ensure XAMPP and node server.js are running.');
+        setError(`Cannot connect to server at ${API_URL}. Please ensure the backend server (and any tunnel) is running.`);
       }
     } finally {
       setLoading(false);
