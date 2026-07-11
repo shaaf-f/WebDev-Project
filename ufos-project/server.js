@@ -9,7 +9,7 @@ const app = express();
 // Add your Vercel URL here once you have it (e.g. https://your-app.vercel.app).
 const allowedOrigins = [
   'http://localhost:5173',
-  'https://your-app.vercel.app', // <-- replace with your actual Vercel URL
+  'https://web-dev-project-mauve-eight.vercel.app/',
 ];
 
 app.use(cors({
