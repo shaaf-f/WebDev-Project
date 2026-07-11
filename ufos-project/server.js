@@ -9,7 +9,7 @@ const app = express();
 // Add your Vercel URL here once you have it (e.g. https://your-app.vercel.app).
 const allowedOrigins = [
   'http://localhost:5173',
-  'https://web-dev-project-mauve-eight.vercel.app/',
+  'https://web-dev-project-mauve-eight.vercel.app',
   'web-dev-project-git-main-shaafs-projects-36488dae.vercel.app',
   'web-dev-project-7t4pje26q-shaafs-projects-36488dae.vercel.app'
 ];
@@ -17,6 +17,7 @@ const allowedOrigins = [
 app.use(cors({
   origin: (origin, callback) => {
     // allow requests with no origin (e.g. curl, Postman, server-to-server)
+    console.log('Incoming request origin:', origin);
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -25,7 +26,7 @@ app.use(cors({
   },
   credentials: true,
   methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type']
+  allowedHeaders: ['Content-Type','ngrok-skip-browser-warning']
 }));
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
 import axios from 'axios';
+axios.defaults.headers.common['ngrok-skip-browser-warning'] = 'true';
 import { 
   ShoppingBag, Clock, XCircle, ArrowLeft, LogOut, User, Store, Utensils, Lock, AlertCircle
 } from 'lucide-react';
