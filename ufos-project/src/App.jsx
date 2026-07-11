@@ -10,6 +10,18 @@ import {
 // to your ngrok URL, e.g. https://abcd-1234.ngrok-free.app/api
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
+// Wraps fetch() and adds the header ngrok needs to skip its browser-warning
+// interstitial page. Harmless when not using ngrok (e.g. local dev).
+function apiFetch(url, options = {}) {
+  return fetch(url, {
+    ...options,
+    headers: {
+      'ngrok-skip-browser-warning': 'true',
+      ...(options.headers || {}),
+    },
+  });
+}
+
 const VENDORS = [
   { id: 'v_tapal', name: 'Tapal Cafeteria', cuisine: 'Normal Dining & Cuisine', icon: '🍛', logo: '/logos/tapal.svg', theme: '#b91c1c' },
   { id: 'v_cafe2go', name: 'Cafe-2-Go', cuisine: 'Sandwiches & Rolls', icon: '🌯', logo: '/logos/cafe2go.svg', theme: '#ca8a04' },
@@ -209,7 +221,7 @@ const LoginScreen = ({ onLogin }) => {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-      const res = await fetch(`${API_URL}/login`, {
+      const res = await apiFetch(`${API_URL}/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -245,7 +257,7 @@ const LoginScreen = ({ onLogin }) => {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-      const res = await fetch(`${API_URL}/register`, {
+      const res = await apiFetch(`${API_URL}/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password, name }),
@@ -524,7 +536,7 @@ export default function App() {
     const vendorId = firstItem.vendor_id;
     
     try {
-      const res = await fetch(`${API_URL}/products/${vendorId}`);
+      const res = await apiFetch(`${API_URL}/products/${vendorId}`);
       const enabledProducts = await res.json();
       const enabledProductIds = new Set(enabledProducts.map(p => p.product_id));
       
@@ -559,14 +571,14 @@ export default function App() {
         }))
       };
 
-      const orderRes = await fetch(`${API_URL}/orders`, {
+      const orderRes = await apiFetch(`${API_URL}/orders`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(orderData)
       });
 
       if (orderRes.ok) {
-        await fetch(`${API_URL}/cart/${user.id}`, { method: 'DELETE' });
+        await apiFetch(`${API_URL}/cart/${user.id}`, { method: 'DELETE' });
         
         alert("Order Placed Successfully!");
         setCart([]);
@@ -594,7 +606,7 @@ export default function App() {
     }
 
     try {
-      const res = await fetch(url);
+      const res = await apiFetch(url);
       const data = await res.json();
       setActiveOrders(data);
       
@@ -610,7 +622,7 @@ export default function App() {
 
   const fetchVendorEarnings = async (vendorId) => {
     try {
-      const res = await fetch(`${API_URL}/vendor/earnings/${vendorId}`);
+      const res = await apiFetch(`${API_URL}/vendor/earnings/${vendorId}`);
       const data = await res.json();
       setVendorEarnings(data);
     } catch (err) {
@@ -620,7 +632,7 @@ export default function App() {
 
   const fetchOrderItems = async (orderId) => {
     try {
-      const res = await fetch(`${API_URL}/order-items/${orderId}`);
+      const res = await apiFetch(`${API_URL}/order-items/${orderId}`);
       const data = await res.json();
       setOrderItemsMap(prev => ({ ...prev, [orderId]: data }));
     } catch (err) {
@@ -630,7 +642,7 @@ export default function App() {
 
   const fetchVendorProducts = async (vendorId) => {
     try {
-      const res = await fetch(`${API_URL}/vendor/products/${vendorId}`);
+      const res = await apiFetch(`${API_URL}/vendor/products/${vendorId}`);
       const data = await res.json();
       setVendorProducts(data);
     } catch (err) {
@@ -646,7 +658,7 @@ export default function App() {
 
     try {
       const myVendorId = VENDOR_ID_MAPPING[user.email];
-      const res = await fetch(`${API_URL}/vendor/products/${myVendorId}`, {
+      const res = await apiFetch(`${API_URL}/vendor/products/${myVendorId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newProduct)
@@ -669,7 +681,7 @@ export default function App() {
   const updateProduct = async (productId, updates) => {
     try {
       const myVendorId = VENDOR_ID_MAPPING[user.email];
-      const res = await fetch(`${API_URL}/vendor/products/${myVendorId}/${productId}`, {
+      const res = await apiFetch(`${API_URL}/vendor/products/${myVendorId}/${productId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updates)
@@ -689,7 +701,7 @@ export default function App() {
 
     try {
       const myVendorId = VENDOR_ID_MAPPING[user.email];
-      const res = await fetch(`${API_URL}/vendor/products/${myVendorId}/${productId}`, {
+      const res = await apiFetch(`${API_URL}/vendor/products/${myVendorId}/${productId}`, {
         method: 'DELETE'
       });
 
@@ -705,7 +717,7 @@ export default function App() {
 
   const updateStatus = async (orderId, newStatus) => {
     try {
-      const res = await fetch(`${API_URL}/orders/${orderId}`, {
+      const res = await apiFetch(`${API_URL}/orders/${orderId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus })
