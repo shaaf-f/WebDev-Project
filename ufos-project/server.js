@@ -10,6 +10,8 @@ const app = express();
 const allowedOrigins = [
   'http://localhost:5173',
   'https://web-dev-project-mauve-eight.vercel.app/',
+  'web-dev-project-git-main-shaafs-projects-36488dae.vercel.app',
+  'web-dev-project-7t4pje26q-shaafs-projects-36488dae.vercel.app'
 ];
 
 app.use(cors({
